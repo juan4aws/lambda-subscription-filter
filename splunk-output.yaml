@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stream from AWS CloudWatch Logs to splunk's HTTP event collector
+Resources:
+  LambdaInvokePermission:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - SplunkFunction
+        - Arn
+      Principal: logs.us-east-1.amazonaws.com
+      SourceAccount:
+        Ref: AWS::AccountId
+      SourceArn:
+        Fn::Join:
+        - ':'
+        - - arn:aws:logs:us-east-1
+          - Ref: AWS::AccountId
+          - log-group:CloudTrail/AllTrails:*
+    Type: AWS::Lambda::Permission
+  SplunkFunction:
+    Properties:
+      CodeUri: s3://mb-root-dev/49759ceb425178e1731a56b27e1203b7
+      Description: Stream events from AWS CloudWatch Logs to Splunk's HTTP event collector
+      Environment:
+        Variables:
+          SPLUNK_HEC_TOKEN: jlkjlkjkljljlk
+          SPLUNK_HEC_URL: hjkhkjhkjhk
+      Handler: index.handler
+      MemorySize: 512
+      Role: arn:aws:iam::807578712478:role/lambda_basic_execution
+      Runtime: nodejs6.10
+      Tags:
+        lambda-console:blueprint: splunk-cloudwatch-logs-processor
+      Timeout: 10
+    Type: AWS::Serverless::Function
+  Subscriptionfilter:
+    DependsOn: LambdaInvokePermission
+    Properties:
+      DestinationArn:
+        Fn::GetAtt:
+        - SplunkFunction
+        - Arn
+      FilterPattern: ''
+      LogGroupName: CloudTrail/AllTrails
+    Type: AWS::Logs::SubscriptionFilter
+Transform: AWS::Serverless-2016-10-31
